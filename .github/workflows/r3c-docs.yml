@@ -1,0 +1,117 @@
+# ===========================================================
+# 🧱 R3C-library All-in-One Auto Docs + LLVM-Free Validator
+# ===========================================================
+# This single file includes:
+#  - mkdocs config (inline)
+#  - LLVM detection
+#  - mkdocs-material setup
+#  - GitHub Pages deployment
+# ===========================================================
+
+name: 🧩 R3C AutoDocs (No LLVM + MkDocs Deploy)
+
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pages: write
+  id-token: write
+
+jobs:
+  docs:
+    runs-on: ubuntu-latest
+
+    steps:
+      # 1️⃣ 리포지토리 체크아웃
+      - name: 🔍 Checkout repository
+        uses: actions/checkout@v4
+
+      # 2️⃣ LLVM 감지 (없을수록 좋음)
+      - name: 🧠 Detect LLVM environment
+        run: |
+          if command -v llvm-config >/dev/null 2>&1; then
+            echo "⚠️ LLVM detected — running in hybrid mode"
+            echo "LLVM_FOUND=true" >> $GITHUB_ENV
+          else
+            echo "✅ No LLVM detected — pure R3C mode"
+            echo "LLVM_FOUND=false" >> $GITHUB_ENV
+          fi
+
+      # 3️⃣ Python & MkDocs 설치
+      - name: ⚙️ Setup Python + MkDocs
+        run: |
+          python3 -m pip install --upgrade pip
+          pip install mkdocs mkdocs-material mkdocs-git-revision-date-localized-plugin
+
+      # 4️⃣ mkdocs.yml 자동 생성 (동적 생성)
+      - name: 🧩 Generate mkdocs.yml dynamically
+        run: |
+          echo "site_name: 'R3C-library — LLVM-Free Runtime'" > mkdocs.yml
+          echo "site_description: 'Industrial Rust/C++ Runtime with No LLVM Dependencies'" >> mkdocs.yml
+          echo "site_url: 'https://r3c-foundation.github.io/R3C-library/'" >> mkdocs.yml
+          echo "repo_url: 'https://github.com/r3c-foundation/R3C-library'" >> mkdocs.yml
+          echo "repo_name: 'r3c-foundation/R3C-library'" >> mkdocs.yml
+          echo "edit_uri: edit/main/docs/" >> mkdocs.yml
+          echo "theme:" >> mkdocs.yml
+          echo "  name: material" >> mkdocs.yml
+          echo "  features:" >> mkdocs.yml
+          echo "    - navigation.expand" >> mkdocs.yml
+          echo "    - navigation.tabs" >> mkdocs.yml
+          echo "    - toc.integrate" >> mkdocs.yml
+          echo "  palette:" >> mkdocs.yml
+          echo "    - scheme: slate" >> mkdocs.yml
+          echo "      primary: blue grey" >> mkdocs.yml
+          echo "      accent: cyan" >> mkdocs.yml
+          echo "  font:" >> mkdocs.yml
+          echo "    text: JetBrains Mono" >> mkdocs.yml
+          echo "    code: JetBrains Mono" >> mkdocs.yml
+          echo "nav:" >> mkdocs.yml
+          echo "  - 🧭 Overview: docs/overview.md" >> mkdocs.yml
+          echo "  - ⚙️ Architecture: docs/architecture.md" >> mkdocs.yml
+          echo "  - 🧱 Build Process: docs/build_process.md" >> mkdocs.yml
+          echo "  - 🦀 No LLVM Philosophy: docs/no_llvm_philosophy.md" >> mkdocs.yml
+          echo "  - 🤝 Contributing: docs/contributing.md" >> mkdocs.yml
+          echo "markdown_extensions:" >> mkdocs.yml
+          echo "  - admonition" >> mkdocs.yml
+          echo "  - codehilite" >> mkdocs.yml
+          echo "  - toc:" >> mkdocs.yml
+          echo "      permalink: true" >> mkdocs.yml
+          echo "  - tables" >> mkdocs.yml
+          echo "  - footnotes" >> mkdocs.yml
+          echo "  - attr_list" >> mkdocs.yml
+          echo "  - def_list" >> mkdocs.yml
+          echo "plugins:" >> mkdocs.yml
+          echo "  - search" >> mkdocs.yml
+          echo "  - git-revision-date-localized:" >> mkdocs.yml
+          echo "      enable_creation_date: true" >> mkdocs.yml
+          echo "      fallback_to_build_date: true" >> mkdocs.yml
+
+      # 5️⃣ 빌드 로그 출력
+      - name: 🧾 Show mkdocs config summary
+        run: |
+          echo "======================="
+          cat mkdocs.yml
+          echo "======================="
+
+      # 6️⃣ mkdocs 빌드
+      - name: 🧱 Build documentation
+        run: mkdocs build --clean
+
+      # 7️⃣ 배포
+      - name: 🚀 Deploy to GitHub Pages
+        uses: peaceiris/actions-gh-pages@v3
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: ./site
+
+      # 8️⃣ 결과 알림
+      - name: ✅ Summary
+        run: |
+          echo "====================================="
+          echo "📚 R3C-library Docs Build Completed!"
+          echo "LLVM-Free Mode: $LLVM_FOUND"
+          echo "Deployed to → https://r3c-foundation.github.io/R3C-library/"
+          echo "====================================="
