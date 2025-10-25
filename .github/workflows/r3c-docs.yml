@@ -1,14 +1,15 @@
 # ===========================================================
 # 🧱 R3C-library All-in-One Auto Docs + LLVM-Free Validator
 # ===========================================================
-# This single file includes:
-#  - mkdocs config (inline)
+# Features:
 #  - LLVM detection
-#  - mkdocs-material setup
+#  - docs/ auto generation (Self-Heal)
+#  - mkdocs.yml dynamic generation
+#  - mkdocs-material build
 #  - GitHub Pages deployment
 # ===========================================================
 
-name: 🧩 R3C AutoDocs (No LLVM + MkDocs Deploy)
+name: 🧩 R3C AutoDocs (Self-Heal + No LLVM + MkDocs Deploy)
 
 on:
   push:
@@ -25,11 +26,11 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      # 1️⃣ 리포지토리 체크아웃
+      # 1️⃣ Checkout repository
       - name: 🔍 Checkout repository
         uses: actions/checkout@v4
 
-      # 2️⃣ LLVM 감지 (없을수록 좋음)
+      # 2️⃣ LLVM detection
       - name: 🧠 Detect LLVM environment
         run: |
           if command -v llvm-config >/dev/null 2>&1; then
@@ -40,21 +41,54 @@ jobs:
             echo "LLVM_FOUND=false" >> $GITHUB_ENV
           fi
 
-      # 3️⃣ Python & MkDocs 설치
+      # 3️⃣ Install MkDocs
       - name: ⚙️ Setup Python + MkDocs
         run: |
           python3 -m pip install --upgrade pip
           pip install mkdocs mkdocs-material mkdocs-git-revision-date-localized-plugin
 
-      # 4️⃣ mkdocs.yml 자동 생성 (동적 생성)
-      - name: 🧩 Generate mkdocs.yml dynamically
+      # 4️⃣ 🩹 Self-Heal: Create docs/ and default .md files if missing
+      - name: 🧱 Ensure docs folder and base files exist
+        run: |
+          mkdir -p docs
+          if [ ! -f docs/overview.md ]; then
+            echo "# 🧭 Overview — R3C-library" > docs/overview.md
+            echo "R3C-library provides an **LLVM-free runtime foundation** for the Rust → C++ → ASM ecosystem." >> docs/overview.md
+          fi
+          if [ ! -f docs/architecture.md ]; then
+            echo "# ⚙️ Architecture" > docs/architecture.md
+            echo "\`\`\`text" >> docs/architecture.md
+            echo "Rust / C++ → R3C Transpiler → ASM → R3C-library → Hardware" >> docs/architecture.md
+            echo "\`\`\`" >> docs/architecture.md
+          fi
+          if [ ! -f docs/build_process.md ]; then
+            echo "# 🧱 Build Process" > docs/build_process.md
+            echo "\`\`\`bash" >> docs/build_process.md
+            echo "git clone https://github.com/r3c-foundation/R3C-library" >> docs/build_process.md
+            echo "cd R3C-library && cmake -B build && cmake --build build" >> docs/build_process.md
+            echo "\`\`\`" >> docs/build_process.md
+            echo "✅ No LLVM required — pure ASM mode." >> docs/build_process.md
+          fi
+          if [ ! -f docs/no_llvm_philosophy.md ]; then
+            echo "# 🦀 No LLVM Philosophy" > docs/no_llvm_philosophy.md
+            echo "> Dependence is comfort. Independence is evolution." >> docs/no_llvm_philosophy.md
+            echo "R3C-library proves Rust and C++ can run without LLVM or Clang." >> docs/no_llvm_philosophy.md
+          fi
+          if [ ! -f docs/contributing.md ]; then
+            echo "# 🤝 Contributing" > docs/contributing.md
+            echo "1. Fork → Branch → PR" >> docs/contributing.md
+            echo "2. Avoid LLVM dependencies." >> docs/contributing.md
+            echo "3. Focus on transparency and portability." >> docs/contributing.md
+          fi
+
+      # 5️⃣ Generate mkdocs.yml dynamically
+      - name: 🧩 Generate mkdocs.yml
         run: |
           echo "site_name: 'R3C-library — LLVM-Free Runtime'" > mkdocs.yml
           echo "site_description: 'Industrial Rust/C++ Runtime with No LLVM Dependencies'" >> mkdocs.yml
           echo "site_url: 'https://r3c-foundation.github.io/R3C-library/'" >> mkdocs.yml
           echo "repo_url: 'https://github.com/r3c-foundation/R3C-library'" >> mkdocs.yml
           echo "repo_name: 'r3c-foundation/R3C-library'" >> mkdocs.yml
-          echo "edit_uri: edit/main/docs/" >> mkdocs.yml
           echo "theme:" >> mkdocs.yml
           echo "  name: material" >> mkdocs.yml
           echo "  features:" >> mkdocs.yml
@@ -74,44 +108,28 @@ jobs:
           echo "  - 🧱 Build Process: docs/build_process.md" >> mkdocs.yml
           echo "  - 🦀 No LLVM Philosophy: docs/no_llvm_philosophy.md" >> mkdocs.yml
           echo "  - 🤝 Contributing: docs/contributing.md" >> mkdocs.yml
-          echo "markdown_extensions:" >> mkdocs.yml
-          echo "  - admonition" >> mkdocs.yml
-          echo "  - codehilite" >> mkdocs.yml
-          echo "  - toc:" >> mkdocs.yml
-          echo "      permalink: true" >> mkdocs.yml
-          echo "  - tables" >> mkdocs.yml
-          echo "  - footnotes" >> mkdocs.yml
-          echo "  - attr_list" >> mkdocs.yml
-          echo "  - def_list" >> mkdocs.yml
           echo "plugins:" >> mkdocs.yml
           echo "  - search" >> mkdocs.yml
           echo "  - git-revision-date-localized:" >> mkdocs.yml
           echo "      enable_creation_date: true" >> mkdocs.yml
           echo "      fallback_to_build_date: true" >> mkdocs.yml
 
-      # 5️⃣ 빌드 로그 출력
-      - name: 🧾 Show mkdocs config summary
-        run: |
-          echo "======================="
-          cat mkdocs.yml
-          echo "======================="
-
-      # 6️⃣ mkdocs 빌드
-      - name: 🧱 Build documentation
+      # 6️⃣ Build MkDocs site
+      - name: 🧰 Build documentation
         run: mkdocs build --clean
 
-      # 7️⃣ 배포
+      # 7️⃣ Deploy to GitHub Pages
       - name: 🚀 Deploy to GitHub Pages
         uses: peaceiris/actions-gh-pages@v3
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           publish_dir: ./site
 
-      # 8️⃣ 결과 알림
+      # 8️⃣ Final summary
       - name: ✅ Summary
         run: |
           echo "====================================="
-          echo "📚 R3C-library Docs Build Completed!"
+          echo "📘 R3C-library Docs Self-Healed & Built!"
           echo "LLVM-Free Mode: $LLVM_FOUND"
           echo "Deployed to → https://r3c-foundation.github.io/R3C-library/"
           echo "====================================="
